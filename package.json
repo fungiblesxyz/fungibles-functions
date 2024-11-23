@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/fungiblesxyz/fungibles-functions",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^22.9.3",
+    "@vercel/node": "^3.2.26",
+    "typescript": "^5.7.2",
+    "vercel": "^39.1.1"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "viem": "^1.21.4"
+  },
+  "overrides": {
+    "@vercel/node": {
+      "ts-node": "10.9.2",
+      "typescript": "5.7.2"
+    }
+  }
+}
