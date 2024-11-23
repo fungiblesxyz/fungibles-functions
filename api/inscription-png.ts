@@ -3,6 +3,7 @@ import { parseAbiItem, concat, keccak256, toBytes } from "viem";
 import { Resvg } from "@resvg/resvg-js";
 import client from "../helpers/client";
 import { getLevels, getAbi } from "../helpers/levels";
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { token, address } = req.query;
 
