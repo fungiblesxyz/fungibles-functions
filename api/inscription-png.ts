@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Cache-Control", "public, max-age=31536000");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     return res.send(png);
   } catch (error) {
     console.error("Error generating PNG:", error);
