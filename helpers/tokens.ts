@@ -26,3 +26,8 @@ export function getAbi(token: `0x${string}`) {
 
   return "function getSvg((uint256 seed, uint256 extra)) view returns (string)";
 }
+
+export function isToken(token: `0x${string}`) {
+  const tokens = [fungiToken, jelliToken, pepiToken, froggiToken];
+  return tokens.some((t) => t.toLowerCase() === token.toLowerCase());
+}

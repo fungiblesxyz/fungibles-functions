@@ -2,10 +2,14 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { parseAbiItem, concat, keccak256, toBytes } from "viem";
 import { Resvg } from "@resvg/resvg-js";
 import client from "../helpers/client";
-import { getLevels, getAbi } from "../helpers/levels";
+import { getLevels, getAbi, isToken } from "../helpers/tokens";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { token, address } = req.query;
+
+  if (!isToken(token as `0x${string}`)) {
+    return res.status(400).json({ error: "Invalid token" });
+  }
 
   if (
     !token ||
