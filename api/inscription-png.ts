@@ -42,6 +42,7 @@ type Inscription = {
   seed: bigint;
   seed2: bigint;
   extra: bigint;
+  creator: `0x${string}`;
 };
 
 async function getSvg(token: `0x${string}`, inscription: Inscription) {
@@ -72,6 +73,7 @@ async function generateInscription(
     seed,
     seed2: extra,
     extra,
+    creator: address,
   };
 }
 
@@ -79,8 +81,12 @@ async function getPng(token: `0x${string}`, address: `0x${string}`) {
   const inscription = await generateInscription(address, token);
   if (inscription.seed === 0n || inscription.extra === 0n) return;
 
-  const svg = await getSvg(token, inscription);
+  let svg = await getSvg(token, inscription);
   if (!svg) return;
+
+  svg = svg
+    .replace(/<def>.*?<\/def>/s, "")
+    .replace(/\s*filter=['"]url\(#[^'"]*\)['"]/g, "");
 
   return new Resvg(svg, {
     fitTo: { mode: "width", value: 440 },
