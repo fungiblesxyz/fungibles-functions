@@ -1,15 +1,21 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import neynarClient from "../helpers/neynarClient";
 import { isApiErrorResponse } from "@neynar/nodejs-sdk";
+import { createHmac } from "crypto";
 
 if (!process.env.SIGNER_UUID) {
   throw new Error("SIGNER_UUID is not defined");
 }
 
+if (!process.env.WEBHOOK_SECRET) {
+  throw new Error("WEBHOOK_SECRET is not defined");
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    const { body } = req;
+    await validateSignature(req);
 
+    const { body } = req;
     if (!body?.data?.hash) {
       return res.status(400).json({ error: "Missing cast hash in request" });
     }
@@ -20,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Error in handler:", error);
     return res.status(500).json({
       error: "Internal server error",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 }
@@ -107,9 +114,26 @@ const replyToCast = async (parentHash: string) => {
         },
       ],
     });
+    console.log(`replied to ${parentHash} with ${text}`);
   } catch (err) {
     if (isApiErrorResponse(err)) {
       console.log(err.response.data);
     } else console.log(err);
   }
 };
+
+async function validateSignature(req: VercelRequest) {
+  const sig = req.headers["x-neynar-signature"];
+  if (!sig || Array.isArray(sig)) {
+    throw new Error("Invalid or missing Neynar signature in request headers");
+  }
+
+  const rawBody = JSON.stringify(req.body);
+  const hmac = createHmac("sha512", process.env.WEBHOOK_SECRET as string);
+  hmac.update(rawBody);
+  const generatedSignature = hmac.digest("hex");
+
+  if (sig !== generatedSignature) {
+    throw new Error("Invalid signature");
+  }
+}
