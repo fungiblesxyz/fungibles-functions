@@ -16,11 +16,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await validateSignature(req);
 
     const { body } = req;
-    if (!body?.data?.hash) {
-      return res.status(400).json({ error: "Missing cast hash in request" });
+    if (!body?.data?.hash || !body?.data?.text) {
+      return res
+        .status(400)
+        .json({ error: "Missing cast hash or text in request" });
     }
 
-    await replyToCast(body.data.hash);
+    await replyToCast(body.data.hash, body.data.text);
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Error in handler:", error);
@@ -92,29 +94,48 @@ export const getTokenMessage = (tokenName: keyof typeof TOKEN_MESSAGES) => {
   return messages[Math.floor(Math.random() * messages.length)];
 };
 
-export function getRandomInscriptionPng() {
-  const project = projects[Math.floor(Math.random() * projects.length)];
-  const randomQuery = Math.random().toString(36).substring(7);
-  const url = `https://fungibles-functions.vercel.app/api/inscription-png?token=${project.address}&address=0xF78108c9BBaF466dd96BE41be728Fe3220b37119&q=${randomQuery}`;
-
-  return { project, url };
+function findMentionedProjects(text: string): (typeof projects)[0][] {
+  return projects.filter(
+    (project) =>
+      text.toLowerCase().includes(project.name.toLowerCase()) ||
+      text.toLowerCase().includes(`$${project.name.toLowerCase()}`)
+  );
 }
 
-const replyToCast = async (parentHash: string) => {
+function getRandomProject(mentionedProjects?: (typeof projects)[0][]) {
+  if (mentionedProjects && mentionedProjects.length > 0) {
+    return mentionedProjects[
+      Math.floor(Math.random() * mentionedProjects.length)
+    ];
+  }
+  return projects[Math.floor(Math.random() * projects.length)];
+}
+
+export function getRandomInscriptionPng(project?: (typeof projects)[0]) {
+  const selectedProject =
+    project || projects[Math.floor(Math.random() * projects.length)];
+  const randomQuery = Math.random().toString(36).substring(7);
+  const url = `https://fungibles-functions.vercel.app/api/inscription-png?token=${selectedProject.address}&address=0xF78108c9BBaF466dd96BE41be728Fe3220b37119&q=${randomQuery}`;
+
+  return { project: selectedProject, url };
+}
+
+const replyToCast = async (parentHash: string, text: string) => {
   try {
-    const { project, url } = getRandomInscriptionPng();
-    const text = getTokenMessage(project.name.toUpperCase() as any);
+    const mentionedProjects = findMentionedProjects(text);
+    const selectedProject = getRandomProject(mentionedProjects);
+    const { url } = getRandomInscriptionPng(selectedProject);
+    const responseText = getTokenMessage(
+      selectedProject.name.toUpperCase() as any
+    );
+
     await neynarClient.publishCast({
       signerUuid: process.env.SIGNER_UUID!,
       parent: parentHash,
-      text,
-      embeds: [
-        {
-          url,
-        },
-      ],
+      text: responseText,
+      embeds: [{ url }],
     });
-    console.log(`replied to ${parentHash} with ${text}`);
+    console.log(`replied to ${parentHash} with ${responseText}`);
   } catch (err) {
     if (isApiErrorResponse(err)) {
       console.log(err.response.data);
